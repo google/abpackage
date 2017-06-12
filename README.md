@@ -20,3 +20,8 @@ library(devtools)
 devtools::install_github("google/abpackage")
 library(abpackage)
 ```
+
+#### Getting Started
+
+[Documentation and examples](https://google.github.io/abpackage/abpackage.html)
+
