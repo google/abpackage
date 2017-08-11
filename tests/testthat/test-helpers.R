@@ -67,8 +67,7 @@ test_that("StandardizeLevelNames", {
                                                 "animals",
                                                 c("cat", "dog"),
                                                 c("c", "d"))
-  expect_equal(data.std$animals,
-               factor(c(rep("c", 3), rep("d", 2)), levels = c("c", "d")))
+  expect_equal(data.std$animals, c(rep("c", 3), rep("d", 2)))
 
   data <- data.frame(animals = c(rep("dog", 5)))
   data.std <- abpackage:::StandardizeLevelNames(data,
@@ -76,8 +75,7 @@ test_that("StandardizeLevelNames", {
                                                 c("cat", "dog"),
                                                 c("c", "d"),
                                                 sub.set = TRUE)
-  expect_equal(data.std$animals,
-               factor(rep("d", 5), levels = c("c", "d")))
+  expect_equal(data.std$animals, rep("d", 5))
 })
 
 test_that("CINames", {

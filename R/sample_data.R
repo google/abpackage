@@ -113,7 +113,8 @@ SampleData <- function(n.metrics = 100,
                        sigma.ctrl = Vectorize(sigma.ctrl, n.metrics),
                        rho.ctrl = Vectorize(rho.ctrl, n.metrics),
                        rho.trmt = Vectorize(rho.trmt, n.metrics),
-                       metric = MetricNames(n.metrics)) %>%
+                       metric = MetricNames(n.metrics),
+                       stringsAsFactors = FALSE) %>%
       dplyr::group_by(metric) %>%
       do(SampleMetricData(., n.observations)) %>%
       dplyr::ungroup() %>%
@@ -163,7 +164,7 @@ SampleGroupData <- function(mu.pre, sigma.pre, mu.post, sigma.post, rho, n) {
   post <- rnorm(n,
                 mu.post + sigma.post / sigma.pre * rho * (pre - mu.pre),
                 sqrt((1 - rho ^ 2)) * sigma.post)
-  return(data.frame(pre = pre, post = post))
+  return(data.frame(pre = pre, post = post, stringsAsFactors = FALSE))
 }
 
 Vectorize <- function(x, n) {

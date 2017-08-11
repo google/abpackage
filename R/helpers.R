@@ -84,6 +84,8 @@ StandardizeLevelNames <- function(data,
   data[, variable.name] <- factor(data[, variable.name],
                                   levels = current.levels)
   levels(data[, variable.name]) <- std.levels
+  # Remove factors.
+  data[, variable.name] <- as.character(data[, variable.name])
   return(data)
 }
 

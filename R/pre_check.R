@@ -46,7 +46,6 @@ PreCheck <- function(data,
   }
 
   output <- data %>%
-    dplyr::mutate(condition = as.factor(condition)) %>%
     dplyr::group_by(metric) %>%
     do(PermutationTest(., n.samples = n.samples)) %>%
     dplyr::ungroup() %>% as.data.frame() %>%
@@ -69,6 +68,7 @@ PreCheck <- function(data,
 #'   identical.
 PermutationTest <- function(data,
                             n.samples = 50000) {
+  data$condition <- as.factor(data$condition)
   ans <- oneway_test(pre ~ condition,
                      distribution = approximate(B = n.samples), data = data)
   p.value <- as.numeric(pvalue(ans))

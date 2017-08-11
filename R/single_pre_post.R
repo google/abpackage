@@ -22,6 +22,11 @@
 #'   A column pre indicating the observed value in the pre-period. A column
 #'   post indicating the observed value in the experiment period. If the
 #'   column pre is missing, the test is based only on the experiment period.
+#' @param weights An optional data.frame with two variables and a single row.
+#'   The variables \code{control} and \code{treatment} indicate the weight of
+#'   the two groups. The weight must be proportional to the traffic proportion
+#'   of observations in the condition group.
+#'   If NULL, equal weights are are used in the fitting process.
 #' @param n.nodes The number of nodes used to approximate each univariate
 #'   distribution.
 #' @param ci.level Coverage of the confidence intervals.
@@ -34,8 +39,12 @@
 #'   p.value: the p-value.
 #'   type: a string equal to percent.change or difference.
 SinglePrePost <- function(data,
+                          weights = NULL,
                           n.nodes = 50,
                           ci.level = 0.95) {
+  if (is.null(weights)) {
+    weights <- data.frame(control = 1, treatment = 1)
+  }
   kNRows <- 2
   empty.output <- data.frame(lower = rep(NA, kNRows),
                              center = rep(NA, kNRows),
@@ -43,7 +52,8 @@ SinglePrePost <- function(data,
                              mean = rep(NA, kNRows),
                              var = rep(NA, kNRows),
                              p.value = rep(NA, kNRows),
-                             type = c("percent.change", "difference"))
+                             type = c("percent.change", "difference"),
+                             stringsAsFactors = FALSE)
 
   # If at least one of the post data is missing, return an empty data.frame.
   if (any(is.na(data$post))) {
@@ -88,11 +98,16 @@ SinglePrePost <- function(data,
       return(empty.output)
     }
     # First stage: estimate pre-period mean.
-    n.pre <- length(data$pre)
     mu.pre <- NonStdStudentTQuantiles(unif.nodes,
-                                      n.pre - 1,
-                                      sd(data$pre) / sqrt(n.pre),
-                                      mean(data$pre))
+                                      n.pre <- length(data$pre) - 1,
+                                      WeightedSE(trmt.data$pre,
+                                                 ctrl.data$pre,
+                                                 weights$treatment,
+                                                 weights$control),
+                                      WeightedAverage(trmt.data$pre,
+                                                      ctrl.data$pre,
+                                                      weights$treatment,
+                                                      weights$control))
 
     # Second stage: estimate experiment period means.
     mus <- dplyr::bind_rows(lapply(mu.pre,
@@ -109,28 +124,20 @@ SinglePrePost <- function(data,
   # compute ci and p-value for percent change when data are negative.
   if (min(data$post) > 0) {
     percent.change <- (100 * mus$trmt / mus$ctrl) - 100
-    pc.df <- ComputeCI(percent.change, ci.level)
-    pc.df$mean <- mean(percent.change)
-    pc.df$var <- var(percent.change)
-    pc.df$p.value <- ComputePValue(percent.change)
+    pc.df <- ComputeStats(percent.change, ci.level, "percent.change")
   } else {
     pc.df <- data.frame(lower = NA,
                         center = NA,
                         upper = NA,
                         mean = NA,
                         var = NA,
-                        p.value = NA)
+                        p.value = NA,
+                        type = "percent.change",
+                        stringsAsFactors = FALSE)
   }
-  pc.df$type <- "percent.change"
   # Compute ci and p-value for difference between treatment mean and control
   # mean.
-  difference <- mus$trmt - mus$ctrl
-  d.df <- ComputeCI(difference, ci.level)
-  d.df$mean <- mean(difference)
-  d.df$var <- var(difference)
-  d.df$p.value <- ComputePValue(difference)
-  d.df$type <- "difference"
-
+  d.df <- ComputeStats(mus$trmt - mus$ctrl, ci.level, "difference")
   return(dplyr::bind_rows(pc.df, d.df))
 }
 
@@ -256,15 +263,57 @@ ComputePValue <- function(data) {
   return(2 * min(prob.positive.change, 1 - prob.positive.change))
 }
 
-#' Compute credible interval from a vector of data
+#' Compute stats from a vector of data
 #'
 #' @param data A vector.
 #' @param ci.level The confidence level for the credible intervals.
+#' @param which A string indicating the type of confidence interval.
+#'   Options are 'percent.change' and 'difference'.
 #' @return
-#'   A data.frame with lower, center and upper values for the credible interval.
-ComputeCI <- function(data, ci.level) {
+#'   A data.frame with lower, center and upper values for the credible interval,
+#'   mean, variance, p.value and type.
+ComputeStats <- function(data, ci.level, which) {
   alpha <- 1 - ci.level
   return(data.frame(lower = quantile(data, alpha / 2),
-                    center = quantile(data, 0.5),
-                    upper = quantile(data, 1 - alpha / 2)))
+                    center = median(data),
+                    upper = quantile(data, 1 - alpha / 2),
+                    mean = mean(data),
+                    var = var(data),
+                    p.value = ComputePValue(data),
+                    type = which,
+                    stringsAsFactors = FALSE))
+}
+
+#' WeightedAverage returns the weighted average of two vectors
+#'
+#' @param x.1 A numerical vector.
+#' @param x.2 A numerical vector.
+#' @param weight.1 A positive weight.
+#' @param weight.2 A positive weight.
+#' @return
+#'   The weighted average of x.1 and x.2.
+WeightedAverage <- function(x.1, x.2, weight.1 = 1, weight.2 = 1) {
+  assert_that(weight.1 > 0, weight.2 > 0)
+  n.1 <- length(x.1)
+  n.2 <- length(x.2)
+  return((weight.1 * sum(x.1) + weight.2 * sum(x.2)) /
+           (weight.1 * n.1 + weight.2 * n.2))
+}
+
+#' WeightedSE returns the standard error of weighted average two vectors
+#'
+#' @param x.1 A numerical vector.
+#' @param x.2 A numerical vector.
+#' @param weight.1 A positive weight.
+#' @param weight.2 A positive weight.
+#' @return
+#'   The standard error of weighted average of x.1 and x.2.
+WeightedSE <- function(x.1, x.2, weight.1 = 1, weight.2 = 1) {
+  assert_that(weight.1 > 0, weight.2 > 0)
+  n.1 <- length(x.1)
+  n.2 <- length(x.2)
+  x.bar <- WeightedAverage(x.1, x.2, weight.1, weight.2)
+  weighted.sd <- sqrt((weight.1 * sum((x.1 - x.bar) ^ 2) +
+      weight.2 * sum((x.2 - x.bar) ^ 2)) / (n.1 + n.2 - 1))
+  return(weighted.sd / sqrt(n.1 * weight.1 + n.2 * weight.2))
 }

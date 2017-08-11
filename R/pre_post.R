@@ -22,6 +22,11 @@
 #'   If omitted, the pre-period is not used to estimate the treatment effect.
 #'   The variable \code{metric} indicates the name of each metric.
 #'   If omitted, all rows are assumed to be from the same metric.
+#' @param weights An optional data.frame with two variables and a single row.
+#'   The variables \code{control} and \code{treatment} indicate the weight of
+#'   the two groups. The weight must be proportional to the traffic proportion
+#'   of observations in the condition group.
+#'   If NULL, equal weights are are used in the fitting process.
 #' @param ci.level Confidence level for credible intervals.
 #' @param p.threshold P-value threshold used to identify statistically
 #' significant effects. See \code{\link[stats]{p.adjust}} function for more
@@ -42,6 +47,7 @@
 #' (ans.no.pre <- PrePost(data.no.pre))
 #' plot(ans.no.pre)
 PrePost <- function(data,
+                    weights = NULL,
                     ci.level = 0.95,
                     p.threshold = 0.05,
                     p.method = "none",
@@ -58,7 +64,12 @@ PrePost <- function(data,
   assert_that(has_name(data, "condition"))
   assert_that(
     HasVariableWithAllLevels(data, "condition", c("control", "treatment")))
-
+  if (is.null(weights)) {
+    weights <- data.frame(control = 1, treatment = 1)
+  }
+  assert_that(has_name(weights, "control"))
+  assert_that(has_name(weights, "treatment"))
+  assert_that(nrow(weights) == 1, weights$control > 0, weights$treatment > 0)
   if (!has_name(data, "metric")) {
     data %<>% dplyr::mutate(metric = rep("metric", nrow(.)))
   }
@@ -66,6 +77,7 @@ PrePost <- function(data,
   # Compute confidence intervals and p-values for each metric.
   results <- data %>% dplyr::group_by(metric) %>%
     do(SinglePrePost(.,
+                     weights,
                      n.nodes,
                      ci.level)) %>%
     dplyr::ungroup() %>% as.data.frame()
@@ -95,8 +107,7 @@ PrePost <- function(data,
 }
 
 MultipleTesting <- function(p.values, p.threshold, p.method) {
-  return(factor(p.adjust(p.values, method = p.method) < p.threshold,
-                levels = c(FALSE, TRUE)))
+  return(p.adjust(p.values, method = p.method) < p.threshold)
 }
 
 ExtractCIs <- function(data, ci.type, ci.level, p.threshold, p.method) {

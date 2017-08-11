@@ -34,7 +34,7 @@ test_that("MultipleMetrics", {
   data <- SampleData(n.metrics = n.tests)
   ans <- PrePost(data, p.threshold = p.threshold)
   expect_s3_class(ans, "ab")
-  expect_true(all(ans$difference$p.value) >= 0)
+  expect_true(all(ans$difference$p.value >= 0))
   expect_true(all(ans$difference$p.value <= 1))
   expect_true(all(ans$percent.change$p.value >= 0))
   expect_true(all(ans$percent.change$p.value <= 1))
@@ -76,6 +76,39 @@ test_that("CoveragePrePost", {
                      sigma.ctrl = sigma.ctrl)
   ci.level <- 0.95
   ans <- PrePost(data, ci.level = ci.level)
+  ci <- GetCIs(ans, percent.change = FALSE)
+  diff <- mu.trmt - mu.ctrl
+  coverage <- mean((ci[, "2.5%"] <= diff) & (ci[, "97.5%"] >= diff))
+  expect_equal(coverage, ci.level, tolerance = 0.02)
+
+  set.seed(33)
+  n.metrics <- 500
+  mu.pre <- 8
+  mu.ctrl <- 9
+  mu.trmt <- 10
+  sigma.trmt <- 1.1
+  sigma.ctrl <- 1.0
+  data.1 <- SampleData(n.metrics = n.metrics,
+                       mu.pre = mu.pre,
+                       mu.ctrl = mu.ctrl,
+                       mu.trmt = mu.trmt,
+                       sigma.trmt = sigma.trmt,
+                       sigma.ctrl = sigma.ctrl) %>%
+    dplyr::mutate(observation = seq(1, nrow(.)))
+  data.2 <- SampleData(n.metrics = n.metrics,
+                       mu.pre = mu.pre,
+                       mu.ctrl = mu.ctrl,
+                       mu.trmt = mu.trmt,
+                       sigma.trmt = sigma.trmt,
+                       sigma.ctrl = sigma.ctrl) %>%
+    dplyr::mutate(observation = seq(1, nrow(.))) %>%
+    dplyr::filter(condition == "treatment")
+  data <- dplyr::bind_rows(data.1, data.2) %>%
+    dplyr::group_by(metric, condition, observation) %>%
+    dplyr::summarise_each(funs(mean))
+  ci.level <- 0.95
+  w <- data.frame(control = 1, treatment = 2)
+  ans <- PrePost(data, ci.level = ci.level, weights = w)
   ci <- GetCIs(ans, percent.change = FALSE)
   diff <- mu.trmt - mu.ctrl
   coverage <- mean((ci[, "2.5%"] <= diff) & (ci[, "97.5%"] >= diff))
