@@ -1,0 +1,292 @@
+---
+title: abpackage
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    highlight: textmate
+    toc: yes
+    toc_depth: 2
+  pdf_document:
+    toc: yes
+  rmarkdown::html_vignette:
+vignette: >
+  %\VignetteIndexEntry{abpackage}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(abpackage)
+```
+
+### An R package for A/B testing leveraging pre-period data
+
+#### What does it do?
+The `abpackage` R package implements `PrePost`, a Bayesian approach for the
+estimation of the treatment effect in A/B testing.
+When pre-period data are available, the method leverages the pre-period to
+get a more accurate estimate of the treatment effect.
+
+#### How does it work?
+
+For each metric, the names "pre" and "post" indicate the periods before and
+after the start of the experiment, respectively.
+The names "control" and "treatment" indicate the two condition groups.
+
+First, the method estimates the mean and variance of the metric in the
+pre-period. Second, it estimates the means and variances in the post-period
+conditionally on the estimate of the mean in the pre-period.
+
+For each metric, `PrePost` returns the estimate of the percent
+change between the mean of the
+treatment and the mean of the control in the post-period. Additionally,
+`PrePost` also computes the difference between the mean of the treatment
+and the mean of the control in the post-period.
+
+## 1. Example: single metric
+Let's generate and plot some synthetic data. In this case the true percent
+change is 0.4% (0.8 / 200 = 0.004):
+```{r}
+set.seed(1)
+n <- 20
+mu.pre <- 200
+mu.trmt <- 0.8
+mu.ctrl <- 0
+trmt.pre.data <- rnorm(n, mu.pre)
+ctrl.pre.data <- rnorm(n, mu.pre)
+trmt.post.data <- rnorm(n, mu.trmt) + trmt.pre.data
+ctrl.post.data <- rnorm(n, mu.ctrl) + ctrl.pre.data
+
+```
+
+```{r}
+data <- data.frame(pre = c(ctrl.pre.data, trmt.pre.data),
+                   post = c(ctrl.post.data, trmt.post.data),
+                   condition = factor(c(rep("control", n),
+                                        rep("treatment", n))),
+                   metric = rep("my metric", 2 * n))
+
+ggplot(data, aes(pre, post, color = condition)) + geom_point()
+```
+
+Now, we can estimate the percentage change between treatment and control using
+the function `PrePost`.
+The credible interval contains the true percent change.
+
+```{r}
+PrePost(data)
+```
+
+We can compare the result with the model where the pre-period is
+omitted. The true percent change is still contained in the credible
+interval, but the interval is substantially wider:
+```{r}
+PrePost(dplyr::select(data, -pre))
+```
+
+## 2. Example: multiple metrics
+
+Let's generate some data from 10 hypothetical metrics using the `SampleData`
+function.
+We assume a 1% increase in the treatment group for the first 3 metrics, and
+a 1% decrease in the treatment group for the fourth metric.
+For the remaining 6 metrics we assume that there is no difference between
+the treatment and the control.
+We fix the pre-post correlation at 0.8, which is commonly observed in
+experiments on large-scale online services.
+
+
+```{r}
+set.seed(1)
+n.metrics <- 10
+n.observations <- 20
+mu.pre <- 100
+sigma.pre <- 1
+rho.ctrl <- 0.8
+rho.trmt <- rho.ctrl
+mu.ctrl <- mu.pre
+trmt.effect.inc <- 1.01
+trmt.effect.dec <- 0.99
+no.trmt.effect <- 1.00
+mu.trmt <- mu.pre * c(rep(trmt.effect.inc, 3), trmt.effect.dec, rep(no.trmt.effect, 6))
+sigma.ctrl <- 1.8
+sigma.trmt <- sigma.ctrl
+data <- SampleData(n.observations = n.observations,
+                   n.metrics = n.metrics,
+                   mu.pre = mu.pre,
+                   sigma.pre = sigma.pre,
+                   rho.ctrl = rho.ctrl,
+                   rho.trmt = rho.trmt,
+                   mu.ctrl = mu.ctrl,
+                   mu.trmt = mu.trmt,
+                   sigma.ctrl = sigma.ctrl,
+                   sigma.trmt = sigma.trmt)
+```
+
+Let's look at the data.
+
+```{r}
+head(data)
+```
+
+Now, we estimate the treatment effect for each of the 10 metrics using the
+function `PrePost`. For each metric, the function `PrePost` computes the
+credible intervals and identifies whether the test
+is statistically significant after correcting for multiple testing.
+In fact, when testing several hypotheses it is recommended to use
+a stricter criterion than the classical "does it overlap with zero?"
+to avoid too many false positives.
+Multiple comparison is based on the `p.adjust` function from the base
+stats package in R.
+The desired method can be passed to the function using `p.method`, and the
+default is `p.method = "none"`, i.e., no correction.
+The desired threshold can be passed to the function using `p.threshold`,
+and the default value is `p.threshold = 0.05`.
+
+The method correctly detects the ~1% increase for the first 4 metrics.
+
+```{r}
+(ans <- PrePost(data, p.method = "BH"))
+```
+
+In the plot below, the barplot shows the 95% credible intervals for the
+percentage change between the treatment and the control for each of
+the 10 metrics. The significant metrics are plotted in green/red
+(positive/negative), while the non-significant metrics are plotted in grey.
+
+```{r}
+plot(ans)
+```
+
+If we only want to plot the metrics that are statistically significant, we can
+use the input `only.sig = TRUE`. This can be particularly useful if you
+are testing a large number of hypotheses.
+
+```{r}
+plot(ans, only.sig = TRUE)
+```
+
+Let's repeat the analysis without using the pre-period.
+In this case only 1 of the 4 impacted metrics is identified.
+
+```{r}
+data.no.pre.period <- dplyr::select(data, -pre)
+
+(ans.no.pre.period <- PrePost(data.no.pre.period,
+                              p.method = "BH"))
+
+plot(ans.no.pre.period)
+```
+
+Looking at the plot, one might wonder why 3 credible intervals
+do not overlap with zero, but only 1 is identified
+as statistically significant. This is due to the multiple testing correction.
+In this example the
+[Benjamini and Hochberg correction](https://www.jstor.org/stable/2346101)
+is used.
+
+## 3. Reshape data
+
+Data pulled using a sql language often have a column for each metric.
+
+```{r, echo=FALSE}
+data <- SampleData(n.metrics = 4, spread = TRUE) %>%
+  dplyr::rename(obs = observation) %>%
+  dplyr::mutate(condition = if_else(condition == "control", "ctrl", "trmt")) %>%
+  dplyr::rename(cond = condition) %>%
+  dplyr::mutate(pre.post = if_else(pre.post == "pre", "before", "after")) %>%
+  dplyr::rename(period = pre.post)
+```
+
+```{r}
+head(data)
+```
+
+The data can be reshaped using the function `ReshapeData`. The name and levels
+of variables can also be passed to the function in case the input data do not
+have the canonical names and levels.
+
+```{r, echo=FALSE}
+set.seed(1)
+```
+```{r}
+reshaped.data <- ReshapeData(data,
+                             observation.col = "obs",
+                             condition.col = "cond",
+                             condition.levels = c("ctrl", "trmt"),
+                             pre.post.col = "period",
+                             pre.post.levels = c("before", "after"))
+
+head(reshaped.data)
+```
+
+## 4. Check pre-period balance
+
+`PrePost` assumes that the distributions of the control group and the treatment
+group are identical in the pre-period. The function `PreCheck` can be used
+to make sure that there is no systematic bias between the two groups in the
+pre-period.
+
+Let's generate data from 100 hypothetical metrics using the
+default values of the `SampleData` function.
+
+```{r}
+set.seed(1)
+n.metrics <- 100
+data <- SampleData(n.metrics = n.metrics)
+pre.period.check <- PreCheck(data)
+head(pre.period.check)
+```
+
+If pre-period observations were generated independently across metrics,
+and identically across conditions within each metric, then
+5% of metrics would be expected to be classified as "*"
+(light misalignment, 0.05 < p-value < 0.10),
+4% of metrics would be expected to be classified as "**"
+(medium misalignment, 0.01 < p-value < 0.05),
+and 1% of metrics would be expected to be classified as "***"
+(heavy misalignment, p-value < 0.01).
+
+Let's see what these percentages look like for our dataset.
+
+```{r}
+table(pre.period.check$misalignment) / n.metrics
+```
+
+The proportion of misaligned metrics is
+consistent with what we would expect in a balanced pre-period.
+
+Now that we have verified that the pre-period is balanced, we can move on and
+analyze the metrics with `PrePost`.
+
+```{r}
+ans <- PrePost(data)
+```
+
+## 5. Model assumptions
+
+`PrePost` assumes that in the pre-period observations within the control
+group and the treatment group are identical distributed. Specifically, they
+are Normally distributed
+$$
+X_{i,j} \sim Normal(\mu_0, \sigma_0^2),
+$$
+where the index $i$ represents the observation and $j$ represents the
+condition group. Specifically, $j=1$ indicates the control group and
+$j=2$ indicates the treatment group.
+
+In the post period, observations within the control
+group and the treatment group are independent but not identically
+distributed across groups
+$$
+Y_{i,j} \sim Normal(\mu_j, \sigma_j^2).
+$$
+
+`PrePost` leverages the correlation between the pre-period and the post-period
+$$
+cor(X_{i,j}, Y_{i,j}) = \rho_j
+$$
+to get tighter credible intervals and more accurate point estimates than
+classic post-period based approaches.
