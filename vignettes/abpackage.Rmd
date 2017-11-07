@@ -290,3 +290,11 @@ cor(X_{i,j}, Y_{i,j}) = \rho_j
 $$
 to get tighter credible intervals and more accurate point estimates than
 classic post-period based approaches.
+
+## 6. Manuscript
+
+Soriano J.
+Percent Change Estimation in Large Scale Online Experiments.
+*arXiv*, 2017, 1711.00562.
+https://arxiv.org/abs/1711.00562
+

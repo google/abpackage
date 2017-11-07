@@ -25,6 +25,7 @@
 #' @param title The title of the plot.
 #' @param size Width of the credible intervals.
 #' @param horizontal If TRUE, the credible intervals are horizontal.
+#` @param n.char Truncates metric names longer than this value.
 #'
 #' @return
 #'  Plot of confidence intervals.
@@ -45,6 +46,7 @@ plot.ab <- function(object,
                     title,
                     size = 1,
                     horizontal = TRUE,
+                    n.char = 25,
                     ...) {
 
   ci.level <- object$ci.level
@@ -74,16 +76,15 @@ plot.ab <- function(object,
                            ci.names$num,
                            ci.names$string)
 
-  # Keep only first kNChar characters of metric names. Add three dots at the
-  # end of names with more than kNChar characters.
+  # Keep only first n.char characters of metric names. Add three dots at the
+  # end of names with more than n.char characters.
   # Classify CIs in positive, negative and neutral.
   # Scale CIs when plotting percent change.
-  kNChar <- 25
   object %<>%
     mutate(metric = as.character(metric)) %>%
-    mutate(metric = if_else(nchar(metric) <= kNChar,
+    mutate(metric = if_else(nchar(metric) <= n.char,
                             metric,
-                            paste0(substr(metric, 1, kNChar), "...")),
+                            paste0(substr(metric, 1, n.char), "...")),
            significant = if_else(significant == TRUE,
                                  if_else(center > 0, "positive", "negative"),
                                  "neutral")) %>%

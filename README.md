@@ -25,3 +25,6 @@ library(abpackage)
 
 [Documentation and examples](https://google.github.io/abpackage/abpackage.html)
 
+#### Manuscript
+
+[Percent Change Estimation in Large Scale Online Experiments](https://arxiv.org/abs/1711.00562)
