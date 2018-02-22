@@ -6,7 +6,7 @@ Maintainer: Jacopo Soriano <jacoposoriano@google.com>
 Description: Estimation and testing of percent change and
    difference between treatment and control in the post-period
    leveraging pre-period data.
-Copyright: Copyright (C) 2016-2017 Google, Inc.
+Copyright: Copyright (C) 2016-2018 Google, Inc.
 License: Apache License 2.0 | file LICENSE
 RoxygenNote: 5.0.1
 Imports: assertthat, coin, dplyr, ggplot2, magrittr, RColorBrewer, tidyr

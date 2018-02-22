@@ -4,7 +4,7 @@
 \alias{GetCIs}
 \title{Returns credible intervals from an object of class \code{ab}.}
 \usage{
-GetCIs(object, only.sig = FALSE, percent.change = TRUE)
+GetCIs(object, only.sig = FALSE, percent.change = TRUE, metrics)
 }
 \arguments{
 \item{object}{An object of class \code{ab}.}
@@ -15,9 +15,12 @@ tests that are statistically significant after multiple testing correction.}
 \item{percent.change}{If TRUE, returns credible intervals for the
 percent change. If FALSE, returns credible intervals for
 the difference.}
+
+\item{metrics}{The names of the metrics to get. If missing, all metrics
+are returned.}
 }
 \value{
-A data.frame with four columns containing the credible intervals,
+A data.frame with the credible intervals,
   the point estimate and the metric name.
 }
 \description{

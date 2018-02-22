@@ -27,7 +27,11 @@ test_that("ReshapeData", {
   reshaped.data <- ReshapeData(data)
   ans <- PrePost(reshaped.data)
   expect_s3_class(ans, "ab")
-  expect_equal(dim(ans$percent.change), c(n.metrics, 9))
+  expect_equal(dim(ans$cis), c(2 * n.metrics, 9))
+
+  reshaped.data <- ReshapeData(as.tibble(data))
+  ans <- PrePost(reshaped.data)
+  expect_s3_class(ans, "ab")
 
   data <- SampleData(spread = TRUE)
   data[ ,5] <- as.character(data[, 5])

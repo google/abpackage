@@ -20,14 +20,16 @@ test_that("GetCIs", {
   n.metrics <- 25
   data <- SampleData(n.metrics = n.metrics)
   ans <- PrePost(data, p.method = "hochberg")
-  expect_error(GetCIs(ans$percent.change))
+  expect_error(GetCIs(ans$cis))
   expect_error(GetCIs(ans, only.sig = "significant"))
   expect_error(GetCIs(ans, percent.change = "percent.change"))
-  expect_equal(dim(GetCIs(ans)), c(n.metrics, 4))
-  expect_equal(dim(GetCIs(ans, percent.change = FALSE)), c(n.metrics, 4))
-  expect_error(GetCIs(ans, only.sig = TRUE),
-               "None of the tests are significant.")
+  expect_equal(dim(GetCIs(ans)), c(n.metrics, 9))
+  expect_equal(dim(GetCIs(ans, percent.change = FALSE)), c(n.metrics, 9))
+  expect_equal(nrow(GetCIs(ans, only.sig = TRUE)), 0)
   ans.none <- PrePost(data, p.method = "none")
-  n.sig <- length(which(ans.none$percent.change$significant == TRUE))
-  expect_equal(nrow(GetCIs(ans.none, only.sig = TRUE)), n.sig)
+  sig.cis <- ans.none$cis %>%
+    dplyr::filter(significant == TRUE,
+                  type == "percent.change")
+
+  expect_equal(nrow(GetCIs(ans.none, only.sig = TRUE)), nrow(sig.cis))
 })

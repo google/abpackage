@@ -1,4 +1,4 @@
-# Copyright 2014-2017 Google Inc. All rights reserved.
+# Copyright 2016-2018 Google Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -96,8 +96,7 @@ PrePost <- function(data,
                            p.threshold,
                            p.method)
   # Organize output in a list.
-  output <- list(percent.change = percent.change,
-                 difference = difference,
+  output <- list(cis = dplyr::bind_rows(percent.change, difference),
                  p.threshold = p.threshold,
                  p.method = p.method,
                  ci.level = ci.level)
@@ -112,10 +111,6 @@ MultipleTesting <- function(p.values, p.threshold, p.method) {
 
 ExtractCIs <- function(data, ci.type, ci.level, p.threshold, p.method) {
 
-  # Used to rename, for instance, from "lower" to "2.5%",
-  # from "center" to "50%", ...
-  ci.names <- CINames(ci.level)
-
   output <- data %>%
     dplyr::filter(type == ci.type) %>%
     dplyr::mutate(significant = MultipleTesting(p.value,
@@ -123,7 +118,6 @@ ExtractCIs <- function(data, ci.type, ci.level, p.threshold, p.method) {
                                                 p.method),
                   metric = as.character(metric)) %>%
     dplyr::select(metric, everything()) %>%
-    RenameColNames(ci.names$string, ci.names$num) %>%
     dplyr::arrange(metric)
 
   return(output)

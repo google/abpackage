@@ -15,4 +15,5 @@ The p-value.
 \description{
 Computes empirical p-value from vector of data
 }
+\keyword{internal}
 

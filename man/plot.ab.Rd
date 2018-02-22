@@ -4,8 +4,8 @@
 \alias{plot.ab}
 \title{Plot credible intervals}
 \usage{
-\method{plot}{ab}(object, only.sig = FALSE, percent.change = TRUE, metrics,
-  legend = FALSE, title, size = 1, horizontal = TRUE, ...)
+plot.ab(object, only.sig = FALSE, percent.change = TRUE, metrics,
+  legend = FALSE, size = 1, horizontal = TRUE, n.char = 25, ...)
 }
 \arguments{
 \item{object}{An object of class \code{ab}.}
@@ -20,8 +20,6 @@ percent change. If FALSE, plots the credible intervals for the difference.}
 are plotted.}
 
 \item{legend}{If TRUE, plots a legend.}
-
-\item{title}{The title of the plot.}
 
 \item{size}{Width of the credible intervals.}
 

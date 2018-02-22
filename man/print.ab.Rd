@@ -4,8 +4,7 @@
 \alias{print.ab}
 \title{Print method for class \code{ab}}
 \usage{
-\method{print}{ab}(object, digits = 3, only.sig = FALSE,
-  percent.change = TRUE, ...)
+print.ab(object, digits = 3, only.sig = FALSE, percent.change = TRUE, ...)
 }
 \arguments{
 \item{object}{An object of class \code{ab}, usually, a result of a call to

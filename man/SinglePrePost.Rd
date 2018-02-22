@@ -7,14 +7,21 @@ the treatment and the control in an AB test for Gaussian data.
 When available, pre-period data can also be
 used to improve the statistical power of the test.}
 \usage{
-SinglePrePost(data, n.nodes = 50, ci.level = 0.95)
+SinglePrePost(data, weights = NULL, n.nodes = 50, ci.level = 0.95)
 }
 \arguments{
-\item{data}{A data.frame with 3 columns for each sample. The column condition
+\item{data}{A data.frame with 4 columns for each sample. The column condition
 indicating whether the sample is from the control or treatment group.
 A column pre indicating the observed value in the pre-period. A column
 post indicating the observed value in the experiment period. If the
-column pre is missing, the test is based only on the experiment period.}
+column pre is missing, the test is based only on the experiment period.
+A column metric indicating the name of the metric.}
+
+\item{weights}{An optional data.frame with two variables and a single row.
+The variables \code{control} and \code{treatment} indicate the weight of
+the two groups. The weight must be proportional to the traffic proportion
+of observations in the condition group.
+If NULL, equal weights are are used in the fitting process.}
 
 \item{n.nodes}{The number of nodes used to approximate each univariate
 distribution.}
@@ -36,4 +43,5 @@ the treatment and the control in an AB test for Gaussian data.
 When available, pre-period data can also be
 used to improve the statistical power of the test.
 }
+\keyword{internal}
 

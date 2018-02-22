@@ -21,4 +21,5 @@ A discrete approximation of the posterior distribution of the mean.
 \description{
 Computes a deterministic approximation of the second stage of pre-post.
 }
+\keyword{internal}
 

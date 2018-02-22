@@ -1,4 +1,4 @@
-# Copyright 2014-2017 Google Inc. All rights reserved.
+# Copyright 2016-2018 Google Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,15 +16,11 @@ RenameColNames <- function(data,
                            current.names,
                            new.names) {
   # Changes the name of the variables from current.names to new.names.
-
   if (length(current.names) != length(new.names)) {
     stop("current.names and std.names must have the same length")
   }
-  for (i in 1:length(current.names)) {
-    assert_that(has_name(data, current.names[i]))
-    # Replace current name with new name.
-    names(data)[names(data) == current.names[i]] <- new.names[i]
-  }
+  data %<>%
+    dplyr::rename_(.dots = setNames(current.names, new.names))
   return(data)
 }
 
@@ -80,12 +76,10 @@ StandardizeLevelNames <- function(data,
                  paste(variable.name, "levels", sep = "."),
                  length(std.levels)))
   }
-  # Replace current levels with default levels.
-  data[, variable.name] <- factor(data[, variable.name],
-                                  levels = current.levels)
-  levels(data[, variable.name]) <- std.levels
-  # Remove factors.
-  data[, variable.name] <- as.character(data[, variable.name])
+  # Replace current levels with default levels. Remove factors.
+  data[[variable.name]] <- as.character(factor(data[[variable.name]],
+                                               levels = current.levels,
+                                               labels = std.levels))
   return(data)
 }
 
@@ -95,7 +89,7 @@ CINames <- function(ci.level) {
   alpha <- 1 - ci.level
   num.names <- paste0(100 * c(alpha / 2, 0.5, 1 - alpha / 2), '%')
   return(data.frame(num = num.names,
-                    string = c("lower", "center", "upper"),
+                    string = c("lower", "median", "upper"),
                     stringsAsFactors = FALSE))
 }
 

@@ -4,8 +4,8 @@
 \alias{PrePost}
 \title{Compute credible intervals}
 \usage{
-PrePost(data, ci.level = 0.95, p.threshold = 0.05, p.method = "none",
-  n.nodes = 50)
+PrePost(data, weights = NULL, ci.level = 0.95, p.threshold = 0.05,
+  p.method = "none", n.nodes = 50)
 }
 \arguments{
 \item{data}{A data.frame with several variables. The variable
@@ -16,6 +16,12 @@ the observed value during the experiment period for each row. The variable
 If omitted, the pre-period is not used to estimate the treatment effect.
 The variable \code{metric} indicates the name of each metric.
 If omitted, all rows are assumed to be from the same metric.}
+
+\item{weights}{An optional data.frame with two variables and a single row.
+The variables \code{control} and \code{treatment} indicate the weight of
+the two groups. The weight must be proportional to the traffic proportion
+of observations in the condition group.
+If NULL, equal weights are are used in the fitting process.}
 
 \item{ci.level}{Confidence level for credible intervals.}
 

@@ -21,4 +21,5 @@ A vector of quantiles.
 \description{
 Computes the quantiles of the non-standardized Student's t-distribution.
 }
+\keyword{internal}
 

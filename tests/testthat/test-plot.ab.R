@@ -20,7 +20,7 @@ test_that("plot.ab", {
   ans <- PrePost(data, p.method = "hochberg")
   p <- plot(ans)
   expect_equal(p$labels, list(x = "metric",
-                              y = "center",
+                              y = "median",
                               colour = "significant",
                               yintercept = "yintercept",
                               ymax = "upper",

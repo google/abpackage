@@ -1,4 +1,4 @@
-# Copyright 2014-2017 Google Inc. All rights reserved.
+# Copyright 2016-2018 Google Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,9 @@
 #' @param percent.change If TRUE, returns credible intervals for the
 #'   percent change. If FALSE, returns credible intervals for
 #'   the difference.
-#' @return A data.frame with four columns containing the credible intervals,
+#' @param metrics The names of the metrics to get. If missing, all metrics
+#'   are returned.
+#' @return A data.frame with the credible intervals,
 #'   the point estimate and the metric name.
 #' @export
 #' @examples
@@ -28,22 +30,21 @@
 #' ans <- PrePost(data)
 #' GetCIs(ans)
 
-GetCIs <- function(object, only.sig = FALSE, percent.change = TRUE) {
+GetCIs <- function(object, only.sig = FALSE, percent.change = TRUE, metrics) {
 
   assert_that(inherits(object, "ab"))
   assert_that(is.logical(only.sig))
   assert_that(is.logical(percent.change))
 
-  if (percent.change) {
-    data <- object$percent.change
-  } else {
-    data <- object$difference
+  which.type <- dplyr::if_else(percent.change, "percent.change", "difference")
+  output <- object$cis %>%
+    dplyr::filter(type == which.type,
+                  !only.sig | significant)
+
+  if (!missing(metrics)) {
+    output %<>%
+      dplyr::filter(metric %in% metrics)
   }
-  if (only.sig) {
-    data <- dplyr::filter(data, significant == TRUE)
-    if (nrow(data) == 0) {
-      stop("None of the tests are significant.")
-    }
-  }
-  return(dplyr::select(data, -p.value, -significant, -type, -mean, -var))
+
+  return(output)
 }

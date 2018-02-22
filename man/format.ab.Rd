@@ -4,8 +4,8 @@
 \alias{format.ab}
 \title{Format an \code{ab} object for pretty printing.}
 \usage{
-\method{format}{ab}(object, digits = 3, only.sig = FALSE,
-  percent.change = TRUE, ...)
+format.ab(object, digits = 3, only.sig = FALSE, percent.change = TRUE,
+  ...)
 }
 \arguments{
 \item{object}{An object of class \code{ab}, usually, a result of a call to

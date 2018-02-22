@@ -28,4 +28,5 @@ A matrix with posterior estimates of the experiment period means.
 \description{
 Computes estimates of the experiment period means given the pre-period mean.
 }
+\keyword{internal}
 

@@ -22,4 +22,5 @@ A data.frame with:
 \description{
 Computes the parameters of a univariate linear regression.
 }
+\keyword{internal}
 

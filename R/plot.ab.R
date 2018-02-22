@@ -1,4 +1,4 @@
-# Copyright 2014-2017 Google Inc. All rights reserved.
+# Copyright 2016-2018 Google Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@
 #' @param metrics The names of the metrics to plot. If missing, all metrics
 #'   are plotted.
 #' @param legend If TRUE, plots a legend.
-#' @param title The title of the plot.
 #' @param size Width of the credible intervals.
 #' @param horizontal If TRUE, the credible intervals are horizontal.
 #` @param n.char Truncates metric names longer than this value.
@@ -37,62 +36,41 @@
 #'   plot(ans, horizontal = FALSE)
 #'   plot(ans, only.sig = TRUE)
 
-
 plot.ab <- function(object,
                     only.sig = FALSE,
                     percent.change = TRUE,
                     metrics,
                     legend = FALSE,
-                    title,
                     size = 1,
                     horizontal = TRUE,
                     n.char = 25,
                     ...) {
+  # Not using piping here because it fails when metrics is missing.
+  object <- GetCIs(object, only.sig, percent.change, metrics)
 
-  ci.level <- object$ci.level
-
-  if (percent.change) {
-    object <- object$percent.change
-  } else {
-    object <- object$difference
-  }
-
-  if (only.sig) {
-    object <- dplyr::filter(object, significant == TRUE)
-  }
-
-  if (!missing(metrics)) {
-    object <- dplyr::filter(object, metric %in% metrics)
-  }
-
-  n <- nrow(object)
-  if (n == 0) {
+  if (nrow(object) == 0) {
     stop("No metrics to plot.")
   }
-  # Rename, for instance, from "2.5%" to "lower", "50%" to "center",
-  # and "97.5%" to "upper".
-  ci.names <- CINames(ci.level)
-  object <- RenameColNames(object,
-                           ci.names$num,
-                           ci.names$string)
 
   # Keep only first n.char characters of metric names. Add three dots at the
   # end of names with more than n.char characters.
   # Classify CIs in positive, negative and neutral.
   # Scale CIs when plotting percent change.
   object %<>%
-    mutate(metric = as.character(metric)) %>%
-    mutate(metric = if_else(nchar(metric) <= n.char,
-                            metric,
-                            paste0(substr(metric, 1, n.char), "...")),
-           significant = if_else(significant == TRUE,
-                                 if_else(center > 0, "positive", "negative"),
-                                 "neutral")) %>%
-    rowwise() %>%
-    mutate(upper = if_else(percent.change, upper / 100, upper),
-           center = if_else(percent.change, center / 100, center),
-           lower = if_else(percent.change, lower / 100, lower)) %>%
-    ungroup()
+    dplyr::mutate(metric = as.character(metric)) %>%
+    dplyr::mutate(metric = dplyr::if_else(nchar(metric) <= n.char,
+                                   metric,
+                                   paste0(substr(metric, 1, n.char), "...")),
+                  significant = dplyr::if_else(significant == TRUE,
+                                               dplyr::if_else(median > 0,
+                                                              "positive",
+                                                              "negative"),
+                                               "neutral")) %>%
+    dplyr::mutate(pc = percent.change,
+                  upper = dplyr::if_else(pc, upper / 100, upper),
+                  median = dplyr::if_else(pc, median / 100, median),
+                  lower = dplyr::if_else(pc, lower / 100, lower)) %>%
+    dplyr::select(-pc)
 
   limits <- aes(ymax = upper, ymin = lower)
   myColors <- c("red3", "gray30", "green4")
@@ -100,20 +78,17 @@ plot.ab <- function(object,
   colScale <- scale_colour_manual(name = "significant",
                                   values = myColors)
 
-  p <- ggplot(object, aes(y = center, x = metric, color = significant)) +
+  p <- ggplot(object, aes(y = median, x = metric, color = significant)) +
     geom_hline(yintercept = 0, linetype = 2) +
     geom_point(size = size) + geom_errorbar(limits, size = size / 3) +
     colScale
 
-  y.scale.name <- ifelse(percent.change, "Change (%)", "Difference")
+  y.scale.name <- dplyr::if_else(percent.change, "Change (%)", "Difference")
   if (percent.change) {
     p <- p + scale_y_continuous(labels = scales::percent,
                                 name = y.scale.name)
   } else {
     p <- p + scale_y_continuous(name = y.scale.name)
-  }
-  if (!missing(title)) {
-    p <- p + ggtitle(title)
   }
   if (!legend) {
     p <- p + theme(legend.position = "none")

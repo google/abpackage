@@ -20,12 +20,10 @@ test_that("SingleMetric", {
   ans <- PrePost(data, p.threshold = p.threshold)
   expect_s3_class(ans, "ab")
   expect_equal(ans$p.threshold, p.threshold)
-  expect_gte(ans$difference$p.value, 0)
-  expect_lte(ans$difference$p.value, 1)
-  expect_gte(ans$percent.change$p.value, 0)
-  expect_lte(ans$percent.change$p.value, 1)
-  expect_true(ans$difference$significant %in% c(TRUE, FALSE))
-  expect_equal(dim(ans$percent.change), c(1, 9))
+  expect_true(all(ans$cis$p.value >= 0))
+  expect_true(all(ans$cis$p.value <= 1))
+  expect_true(all(ans$cis$significant %in% c(FALSE, TRUE)))
+  expect_equal(dim(ans$cis), c(2, 9))
 })
 
 test_that("MultipleMetrics", {
@@ -34,12 +32,10 @@ test_that("MultipleMetrics", {
   data <- SampleData(n.metrics = n.tests)
   ans <- PrePost(data, p.threshold = p.threshold)
   expect_s3_class(ans, "ab")
-  expect_true(all(ans$difference$p.value >= 0))
-  expect_true(all(ans$difference$p.value <= 1))
-  expect_true(all(ans$percent.change$p.value >= 0))
-  expect_true(all(ans$percent.change$p.value <= 1))
-  expect_true(all(ans$difference$significant %in% c(FALSE, TRUE)))
-  expect_equal(dim(ans$percent.change), c(n.tests, 9))
+  expect_true(all(ans$cis$p.value >= 0))
+  expect_true(all(ans$cis$p.value <= 1))
+  expect_true(all(ans$cis$significant %in% c(FALSE, TRUE)))
+  expect_equal(dim(ans$cis), c(2 * n.tests, 9))
 })
 
 test_that("CoveragePostOnly", {
@@ -56,7 +52,7 @@ test_that("CoveragePostOnly", {
   ans <- PrePost(data, ci.level = ci.level)
   ci <- GetCIs(ans, percent.change = FALSE)
   diff <- mu.trmt - mu.ctrl
-  coverage <- mean((ci[, "2.5%"] <= diff) & (ci[, "97.5%"] >= diff))
+  coverage <- mean((ci$lower <= diff) & (ci$upper >= diff))
   expect_equal(coverage, ci.level, tolerance = 0.02)
 })
 
@@ -78,7 +74,7 @@ test_that("CoveragePrePost", {
   ans <- PrePost(data, ci.level = ci.level)
   ci <- GetCIs(ans, percent.change = FALSE)
   diff <- mu.trmt - mu.ctrl
-  coverage <- mean((ci[, "2.5%"] <= diff) & (ci[, "97.5%"] >= diff))
+  coverage <- mean((ci$lower <= diff) & (ci$upper >= diff))
   expect_equal(coverage, ci.level, tolerance = 0.02)
 
   set.seed(33)
@@ -111,7 +107,7 @@ test_that("CoveragePrePost", {
   ans <- PrePost(data, ci.level = ci.level, weights = w)
   ci <- GetCIs(ans, percent.change = FALSE)
   diff <- mu.trmt - mu.ctrl
-  coverage <- mean((ci[, "2.5%"] <= diff) & (ci[, "97.5%"] >= diff))
+  coverage <- mean((ci$lower <= diff) & (ci$upper >= diff))
   expect_equal(coverage, ci.level, tolerance = 0.02)
 })
 

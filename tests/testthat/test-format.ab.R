@@ -21,12 +21,12 @@ test_that("format.ab", {
   ans <- PrePost(data, p.method = "hochberg")
   str <- c(paste0(paste0("Significant tests (p.threshold = 0.05, ",
                          "p.method = hochberg): 0 out of 2 (0.00%)."),
-                  "\n\nCredible intervals for (%) percent change between ",
+                  "\n\n95% credible intervals for (%) percent change between ",
                   "treatment and control:\n"),
            "    metric   2.5%    50% 97.5% p.value significant\n",
            "1 metric 1 -0.454 -0.066 0.324   0.737            \n",
            "2 metric 2 -0.175  0.244 0.660   0.249            \n",
-           "Significant metrics are identifed by *.")
+           "Significant metrics are identified by *.")
   expect_output(cat(format.ab(ans)), cat(str))
 
   expect_output(cat(format.ab(ans, only.sig = TRUE)),

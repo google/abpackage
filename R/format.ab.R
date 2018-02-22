@@ -1,4 +1,4 @@
-# Copyright 2014-2017 Google Inc. All rights reserved.
+# Copyright 2016-2018 Google Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,16 +32,16 @@ format.ab <- function(object,
   assert_that(is.logical(only.sig))
   assert_that(is.logical(percent.change))
 
-  if (percent.change) {
-    data <- object$percent.change
-  } else {
-    data <- object$difference
-  }
-  # Drop type, mean and var columns.
-  data <- dplyr::select(data, -type, -mean, -var)
-  # Keep only <digits> significant digits for numeric variables.
-  num <- sapply(data, is.numeric)
-  data[num] <- round(data[num], digits = digits)
+  # Used to rename, for instance, from "lower" to "2.5%",
+  # from "median" to "50%", ...
+  ci.names <- CINames(object$ci.level)
+  # The only.sig filtering is done later in the code, after the fraction
+  # of significant metrics is computed.
+  data <- object %>%
+    GetCIs(only.sig = FALSE, percent.change = percent.change) %>%
+    dplyr::select(metric, lower, median, upper, p.value, significant) %>%
+    dplyr::mutate_if(is.numeric, function(x) round(x, digits = digits)) %>%
+    RenameColNames(ci.names$string, ci.names$num)
   # Create a table with number of significant / not significant metrics.
   table.tests <- table(data$significant)
 
@@ -63,7 +63,8 @@ format.ab <- function(object,
   }
 
   if (nrow(data) > 0) {
-    temp.1 <- "Credible intervals for (%) "
+    temp.1 <- paste0(round(100 * object$ci.level),
+                     "% credible intervals for (%) ")
     temp.2 <- ifelse(percent.change,
                      "percent change between treatment and control:\n",
                      "difference between treatment and control:\n")
@@ -72,7 +73,7 @@ format.ab <- function(object,
     data <- capture.output(data) %>% paste0("\n")
     final.sentence <- if_else(only.sig,
                               "Only significant metrics are shown.",
-                              "Significant metrics are identifed by *.")
+                              "Significant metrics are identified by *.")
     statement <- c(statement, data, final.sentence)
   }
 

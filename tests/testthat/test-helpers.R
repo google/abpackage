@@ -20,70 +20,73 @@ test_that("RenameColNames", {
   current.col <- "animals"
   data <- data.frame(c(rep("cat", 3), rep("dog", 2)))
   names(data) <- current.col
-  data.std <- abpackage:::RenameColNames(data,
-                                          current.col,
-                                          std.col)
+  data.std <- RenameColNames(data, current.col, std.col)
+  expect_true(std.col %in% names(data.std))
+
+  data.t <- as.tibble(data)
+  data.std <- RenameColNames(data.t, current.col, std.col)
   expect_true(std.col %in% names(data.std))
 })
 
 test_that("HasVariableWithAllLevels", {
 
   data <- data.frame(animals = c(rep("cat", 3), rep("dog", 2)))
-  expect_true(abpackage:::HasVariableWithAllLevels(data,
-                                                   "animals",
-                                                   c("cat", "dog")))
-  expect_false(abpackage:::HasVariableWithAllLevels(data,
-                                                    "animals",
-                                                    c("frog", "dog")))
+  expect_true(HasVariableWithAllLevels(data, "animals", c("cat", "dog")))
+  expect_false(HasVariableWithAllLevels(data, "animals", c("frog", "dog")))
 
   data.t <- tibble(animals = data$animals)
-  expect_true(abpackage:::HasVariableWithAllLevels(data.t,
-                                                   "animals",
-                                                   c("cat", "dog")))
+  expect_true(HasVariableWithAllLevels(data.t, "animals", c("cat", "dog")))
 
 })
 
 test_that("HasVariableWithSomeLevels", {
   data <- data.frame(animals = c(rep("cat", 3)))
-  expect_true(abpackage:::HasVariableWithSomeLevels(data,
-                                                    "animals",
-                                                    c("cat", "dog")))
+  expect_true(HasVariableWithSomeLevels(data, "animals", c("cat", "dog")))
 
-  expect_false(abpackage:::HasVariableWithSomeLevels(data,
-                                                     "animals",
-                                                     c("pig", "dog")))
+  expect_false(HasVariableWithSomeLevels(data, "animals", c("pig", "dog")))
 
   data.t <- tibble(animals = data$animals)
-  expect_true(abpackage:::HasVariableWithSomeLevels(data.t,
-                                                    "animals",
-                                                    c("cat", "dog")))
+  expect_true(HasVariableWithSomeLevels(data.t, "animals", c("cat", "dog")))
 
 })
 
 test_that("StandardizeLevelNames", {
 
   data <- data.frame(animals = c(rep("cat", 3), rep("dog", 2)))
-  data.std <- abpackage:::StandardizeLevelNames(data,
-                                                "animals",
-                                                c("cat", "dog"),
-                                                c("c", "d"))
+  data.std <- StandardizeLevelNames(data,
+                                    "animals",
+                                    c("cat", "dog"),
+                                    c("c", "d"))
   expect_equal(data.std$animals, c(rep("c", 3), rep("d", 2)))
 
+  data.std <- StandardizeLevelNames(as.tibble(data),
+                                    "animals",
+                                    c("cat", "dog"),
+                                    c("c", "d"))
+  expect_equal(data.std[["animals"]], c(rep("c", 3), rep("d", 2)))
+
   data <- data.frame(animals = c(rep("dog", 5)))
-  data.std <- abpackage:::StandardizeLevelNames(data,
-                                                "animals",
-                                                c("cat", "dog"),
-                                                c("c", "d"),
-                                                sub.set = TRUE)
+  data.std <- StandardizeLevelNames(data,
+                                    "animals",
+                                    c("cat", "dog"),
+                                    c("c", "d"),
+                                    sub.set = TRUE)
   expect_equal(data.std$animals, rep("d", 5))
+
+  data.std <- StandardizeLevelNames(as.tibble(data),
+                                    "animals",
+                                    c("cat", "dog"),
+                                    c("c", "d"),
+                                    sub.set = TRUE)
+  expect_equal(data.std[["animals"]], rep("d", 5))
 })
 
 test_that("CINames", {
 
-  expect_equal(CINames(0.95),
-               data.frame(num = c("2.5%", "50%", "97.5%"),
-                          string = c("lower", "center", "upper"),
-                          stringsAsFactors = FALSE))
+  data <- data.frame(num = c("2.5%", "50%", "97.5%"),
+                     string = c("lower", "median", "upper"),
+                     stringsAsFactors = FALSE)
+  expect_equal(CINames(0.95), data)
 
   expect_error(CINames(1.1),
                "ci.level not less than 1")
