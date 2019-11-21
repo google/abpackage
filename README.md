@@ -3,7 +3,7 @@
 #### An R package for AB testing leveraging pre-period information
 
 The abpackage implements PrePost, a Bayesian approach for the
-estimation of the treatment effect in A/B testing.
+estimation of the treatment effect in AB testing(also referred as A/B testing).
 When pre-period data are available, the method leverages the pre-period to
 get a more accurate estimate of the treatment effect.
 
